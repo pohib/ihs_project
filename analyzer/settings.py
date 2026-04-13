@@ -1,6 +1,7 @@
 import os
 from pathlib import Path
 import environ
+import dj_database_url
 
 env = environ.Env(
     DEBUG=(bool, False),
@@ -54,8 +55,17 @@ TEMPLATES = [
 
 WSGI_APPLICATION = 'analyzer.wsgi.application'
 
+"""
 DATABASES = {
     'default': env.db('DATABASE_URL')
+}
+"""
+
+DATABASES = {
+    'default': dj_database_url.config(
+        default=env('DATABASE_URL'),
+        conn_max_age=600
+    )
 }
 
 AUTH_PASSWORD_VALIDATORS = [
