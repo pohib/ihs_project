@@ -1,0 +1,13 @@
+Django>=5.2,<6.0
+
+gunicorn>=21.2.0
+
+environ
+
+psycopg2-binary>=2.9.9
+
+django-cors-headers>=4.3.1
+
+django-environ
+psycopg2-binary
+gunicorn
