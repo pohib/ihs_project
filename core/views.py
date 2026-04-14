@@ -4,19 +4,27 @@ import io
 import ipaddress
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib import messages
+from django.db.models import Q
 from django.http import JsonResponse
 from .models import FirewallRule, FileImport
 from .forms import UploadFileForm
 
+def get_or_create_session(request):
+    if not request.session.session_key:
+        request.session.create()
+    return request.session.session_key
+
 def rule_list(request, file_id=None):
-    files = FileImport.objects.all()
+    s_key = get_or_create_session(request)
+    
+    files = FileImport.objects.filter(session_id=s_key)
     selected_file = None
     
     if file_id:
-        selected_file = get_object_or_404(FileImport, id=file_id)
+        selected_file = get_object_or_404(FileImport, id=file_id, session_id=s_key)
         rules = FirewallRule.objects.filter(file_source=selected_file)
     else:
-        rules = FirewallRule.objects.all()
+        rules = FirewallRule.objects.filter(file_source__session_id=s_key)
         
     stats = get_analysis_stats(rules)
     
@@ -27,28 +35,44 @@ def rule_list(request, file_id=None):
         'stats': stats
     })
 
-def run_analysis(request):
-    if not FirewallRule.objects.exists():
-        messages.error(request, "Ошибка: Отсутствует конфигурационный файл правил.")
+def run_analysis(request, file_id=None):
+    s_key = request.session.session_key
+    if not s_key:
+        messages.error(request, "Сессия не найдена. Загрузите файл заново.")
         return redirect('rule_list')
 
-    rules = list(FirewallRule.objects.all().order_by('id'))
-    FirewallRule.objects.update(
+    if file_id:
+        selected_file = get_object_or_404(FileImport, id=file_id, session_id=s_key)
+    else:
+        selected_file = FileImport.objects.filter(session_id=s_key).first()
+
+    if not selected_file:
+        messages.error(request, "Файлы для анализа не найдены.")
+        return redirect('rule_list')
+
+    # 3. Выбираем правила ТОЛЬКО этого файла
+    rules_queryset = FirewallRule.objects.filter(file_source=selected_file).order_by('id')
+    rules = list(rules_queryset)
+
+    if not rules:
+        messages.error(request, f"В файле {selected_file.filename} нет правил.")
+        return redirect('rule_list')
+
+    rules_queryset.update(
         is_redundant=False, is_shadowed=False, is_correlated=False, recommendation=""
     )
 
     for i, curr in enumerate(rules):
         curr.recommendation = ""
-        
-        # 1. Проверка синтаксиса (Порт не нужен для ICMP и ANY)
+
+        curr.is_shadowed = False
+        curr.is_redundant = False
+
         if curr.port is None and curr.protocol not in ['ICMP', 'ANY']:
             curr.recommendation += "Синтаксис: порт не указан (ANY). "
-            curr.is_shadowed = True # Выставляем флаг, чтобы правило считалось "проблемным"
 
-        # 2. Проверка риска (0.0.0.0/0)
         if curr.action == 'ALLOW' and curr.source_ip in ['0.0.0.0/0', 'any', '*']:
             curr.recommendation += "Риск: небезопасное разрешение (0.0.0.0/0). "
-            curr.is_shadowed = True
 
         try:
             curr_src = ipaddress.ip_network(curr.source_ip, strict=False)
@@ -58,8 +82,7 @@ def run_analysis(request):
             curr.is_shadowed = True
             curr.save()
             continue
-
-        # 3. Поиск конфликтов с предыдущими правилами
+        
         for prev in rules[:i]:
             try:
                 prev_src = ipaddress.ip_network(prev.source_ip, strict=False)
@@ -81,13 +104,12 @@ def run_analysis(request):
                     curr.recommendation += f"Затенение: правило '{prev.name}' (ID:{prev.id}) блокирует выполнение"
                 break 
 
-        if curr.is_shadowed or curr.is_redundant:
-            curr.save()
+        curr.save()
 
-    stats = get_analysis_stats(rules)
+    stats = get_analysis_stats(rules_queryset)
+    messages.success(request, f"Анализ файла {selected_file.filename} завершён. Проблем: {int(stats['issues'])}")
     
-    messages.success(request, f"Анализ завершён. Найдено проблем: {int(stats['issues'])}")
-    return redirect('rule_list')
+    return redirect('rule_list_by_file', file_id=selected_file.id)
 
 def get_analysis_stats(rules):
     if hasattr(rules, 'filter'):
@@ -112,26 +134,41 @@ def get_analysis_stats(rules):
     }
 
 def analysis_report(request):
-    rules = FirewallRule.objects.all().order_by('id')
+    s_key = request.session.session_key
+    if not s_key:
+        return JsonResponse({'error': 'No session'}, status=403)
+        
+    rules = FirewallRule.objects.filter(file_source__session_id=s_key).order_by('id')
     stats = get_analysis_stats(rules)
-    issues = list(rules.filter(is_redundant=True)|rules.filter(is_shadowed=True)|rules.filter(is_correlated=True).values(
+    
+    issues_queryset = rules.filter(
+        Q(is_redundant=True) | 
+        Q(is_shadowed=True) | 
+        Q(is_correlated=True)
+    )
+    
+    issues = list(issues_queryset.values(
         'id', 'name', 'source_ip', 'dest_ip', 'port', 'protocol', 'action', 'recommendation'
     ))
+    
     return JsonResponse({'stats': stats, 'issues': issues})
 
 def upload_file(request):
     if request.method == "POST":
         form = UploadFileForm(request.POST, request.FILES)
         if form.is_valid():
+            s_key = get_or_create_session(request)
             uploaded_file = request.FILES['file']
             try:
-                file_import = FileImport.objects.create(filename=uploaded_file.name)
+                file_import = FileImport.objects.create(filename=uploaded_file.name, session_id=s_key)
                 if uploaded_file.name.endswith('.csv'):
                     handle_csv(uploaded_file, file_import)
                 elif uploaded_file.name.endswith('.json'):
                     handle_json(uploaded_file, file_import)
+                    
                 messages.success(request, f"Файл {uploaded_file.name} успешно импортирован")
-                return redirect('rule_list')
+                
+                return redirect('rule_list_by_file', file_id=file_import.id)
             except Exception as e:
                 messages.error(request, f"Ошибка при разборе файла: {e}")
     else:
@@ -171,3 +208,21 @@ def handle_json(file, file_import):
             protocol=item.get('protocol', 'ANY').upper(),
             action=item.get('action', 'DENY').upper()
         )
+        
+def delete_file(request, file_id):
+    s_key = request.session.session_key
+    if not s_key:
+        return redirect('rule_list')
+    
+    file_to_delete = get_object_or_404(FileImport, id=file_id, session_id=s_key)
+    filename = file_to_delete.filename
+
+    referer_url = request.META.get('HTTP_REFERER')
+    
+    file_to_delete.delete()
+    messages.success(request, f"Файл {filename} удален.")
+
+    if referer_url and f'/{file_id}/' in referer_url:
+        return redirect('rule_list')
+    
+    return redirect(referer_url or 'rule_list')

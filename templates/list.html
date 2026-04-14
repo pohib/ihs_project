@@ -18,15 +18,26 @@
                 </a>
 
                 {% for file in files %}
-                <a href="{% url 'rule_list_by_file' file.id %}" 
-                    class="flex items-center px-4 py-3 rounded-xl transition-all border font-medium text-sm truncate
-                    {% if selected_file.id == file.id %}
-                    bg-slate-800/50 border-slate-700/50 text-slate-200
-                    {% else %}
-                    bg-transparent border-transparent text-slate-400 hover:bg-slate-900 hover:text-slate-200
-                    {% endif %}">
-                    {{ file.filename }}
-                </a>
+                <div class="group flex items-center justify-between">
+                    <a href="{% url 'rule_list_by_file' file.id %}" 
+                        class="flex-1 flex items-center px-4 py-3 rounded-l-xl transition-all border font-medium text-sm truncate
+                        {% if selected_file.id == file.id %}
+                        bg-slate-800/50 border-slate-700/50 text-slate-200
+                        {% else %}
+                        bg-transparent border-transparent text-slate-400 hover:bg-slate-900 hover:text-slate-200
+                        {% endif %}">
+                        {{ file.filename }}
+                    </a>
+                    
+                    <a href="{% url 'delete_file' file.id %}" 
+                    onclick="return confirm('Удалить этот файл и все его правила?')"
+                    class="px-3 py-3 rounded-r-xl border-y border-r border-transparent text-slate-600 hover:text-rose-400 hover:bg-slate-900 transition-all
+                    {% if selected_file.id == file.id %} border-slate-700/50 bg-slate-800/50 {% endif %}">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                        </svg>
+                    </a>
+                </div>
                 {% endfor %}
             </div>
 
@@ -60,14 +71,15 @@
                 <a href="{% url 'upload_file' %}" class="px-5 py-2.5 bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 rounded-xl transition font-bold text-sm">
                     Импорт
                 </a>
-                {% if rules %}
-                <a href="{% url 'run_analysis' %}" class="px-5 py-2.5 bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 rounded-xl transition font-bold text-sm">
-                    Запустить анализ
-                </a>
+                
+                {% if selected_file %}
+                    <a href="{% url 'run_analysis_by_file' selected_file.id %}" class="px-5 py-2.5 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl transition font-bold text-sm shadow-lg shadow-indigo-500/20">
+                        Запустить анализ
+                    </a>
                 {% else %}
-                <button disabled class="px-5 py-2.5 bg-slate-900 text-slate-600 rounded-xl cursor-not-allowed font-bold text-sm border border-slate-800">
-                    Запустить анализ
-                </button>
+                    <button disabled title="Выберите конкретный файл для анализа" class="px-5 py-2.5 bg-slate-900 text-slate-600 rounded-xl cursor-not-allowed font-bold text-sm border border-slate-800 opacity-60">
+                        Запустить анализ
+                    </button>
                 {% endif %}
             </div>
         </div>
