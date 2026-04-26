@@ -47,8 +47,9 @@
                 <p class="text-xs text-red-400 font-bold mt-1">Проблемы: {{ stats.issues|floatformat:0 }} </p>
                 <div class="text-[10px] text-slate-500 mt-2 space-y-1">
                     <div>Избыточных: {{ stats.redundant }}</div>
-                    <div>Затенённых: {{ stats.shadowed }}</div>
-                    <div>Корреляций: {{ stats.correlated }}</div>
+                    <div class="text-indigo-400">Затенённых: {{ stats.shadowed }}</div>
+                    <div class="text-rose-400">Ошибок: {{ stats.errors }}</div>
+                    <div class="text-yellow-400">Процент ошибок: {{ stats.issues_pct }}%</div>
                 </div>
             </div>
         </div>
@@ -68,6 +69,21 @@
             </div>
             
             <div class="flex items-center gap-3">
+                {% if selected_file %}
+                    <a href="{% url 'export_rules_file' selected_file.id %}" class="px-5 py-2.5 bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 rounded-xl transition font-bold text-sm flex items-center gap-2">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                        </svg>
+                        Отчёт
+                    </a>
+                {% else %}
+                    <a href="{% url 'export_rules_all' %}" class="px-5 py-2.5 bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 rounded-xl transition font-bold text-sm flex items-center gap-2">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                        </svg>
+                        Общий отчёт
+                    </a>
+                {% endif %}
                 <a href="{% url 'upload_file' %}" class="px-5 py-2.5 bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 rounded-xl transition font-bold text-sm">
                     Импорт
                 </a>
@@ -108,7 +124,13 @@
                     <tbody class="divide-y divide-slate-800">
                         {% for rule in rules %}
                         <tr class="group transition-colors hover:bg-slate-800/30
-                            {% if rule.is_shadowed %}bg-rose-500/[0.04]{% elif rule.is_redundant %}bg-amber-500/[0.04]{% endif %}">
+                            {% if rule.is_error %}
+                                bg-rose-500/5
+                            {% elif rule.is_shadowed %}
+                                bg-indigo-500/5
+                            {% elif rule.is_redundant %}
+                                bg-amber-500/5
+                            {% endif %}">
                             
                             <td class="px-6 py-5 font-mono text-slate-600 text-xs">{{ rule.id }}</td>
                             
@@ -123,7 +145,13 @@
                                 <span class="bg-slate-800 text-slate-300 px-2 py-0.5 rounded text-[10px] font-bold border border-slate-700 uppercase">
                                     {{ rule.protocol }}
                                 </span>
-                                <span class="ml-2 font-mono text-sm text-slate-400">{{ rule.port|default:"*" }}</span>
+                                <span class="ml-2 font-mono text-sm text-slate-400">
+                                    {% if rule.port_start == rule.port_end %}
+                                        {{ rule.port_start }}
+                                    {% else %}
+                                        {{ rule.port_start }}-{{ rule.port_end }}
+                                    {% endif %}
+                                </span>
                             </td>
 
                             <td class="px-6 py-5">
@@ -138,13 +166,16 @@
                             </td>
 
                             <td class="px-6 py-5 text-right">
-                                {% if rule.is_shadowed %}
-                                    <span class="text-rose-400 font-bold text-[10px] uppercase tracking-tighter">Ошибка</span>
-                                    <div class="text-[10px] text-slate-500 mt-1">{{ rule.recommendation }}</div>
+                                {% if rule.is_error %}
+                                    <span class="text-rose-500 font-black text-[10px] uppercase tracking-wider border border-rose-500/30 px-2 py-0.5 rounded bg-rose-500/10">Ошибка</span>
+                                    <div class="text-[10px] text-rose-400/80 mt-1.5 leading-relaxed">{{ rule.recommendation }}</div>
+                                {% elif rule.is_shadowed %}
+                                    <span class="text-indigo-400 font-black text-[10px] uppercase tracking-wider border border-indigo-500/30 px-2 py-0.5 rounded bg-indigo-500/10">Затенение</span>
+                                    <div class="text-[10px] text-slate-500 mt-1.5 leading-relaxed">{{ rule.recommendation }}</div>
                                 {% elif rule.is_redundant %}
-                                    <span class="text-amber-400 font-bold text-[10px] uppercase tracking-tighter">Избыточность</span>
+                                    <span class="text-amber-400 font-black text-[10px] uppercase tracking-wider border border-amber-500/30 px-2 py-0.5 rounded bg-amber-500/10">Избыточность</span>
                                     <div class="text-[10px] text-slate-500 mt-1">{{ rule.recommendation }}</div>
-                                {% elif rule.recommendation == "" or rule.recommendation %}
+                                {% elif rule.recommendation %}
                                     <span class="text-slate-600 text-xs italic">Конфликтов нет</span>
                                 {% else %}
                                     <span class="text-slate-500 text-xs italic font-medium">Не проверено</span>
@@ -168,12 +199,16 @@
             <p class="text-[10px] text-slate-600 font-bold uppercase tracking-[0.3em]"></p>
             <div class="flex gap-4">
                 <div class="flex items-center gap-2">
-                    <div class="w-1.5 h-1.5 rounded-full bg-rose-400"></div>
-                    <span class="text-[10px] text-slate-500 font-bold uppercase tracking-tighter">Перекрытие</span>
+                    <div class="w-1.5 h-1.5 rounded-full bg-rose-500"></div>
+                    <span class="text-[10px] text-slate-500 font-bold uppercase tracking-tighter">Ошибки/Риски</span>
+                </div>
+                <div class="flex items-center gap-2">
+                    <div class="w-1.5 h-1.5 rounded-full bg-indigo-400"></div>
+                    <span class="text-[10px] text-slate-500 font-bold uppercase tracking-tighter">Затенение</span>
                 </div>
                 <div class="flex items-center gap-2">
                     <div class="w-1.5 h-1.5 rounded-full bg-amber-400"></div>
-                    <span class="text-[10px] text-slate-500 font-bold uppercase tracking-tighter">Дублирование</span>
+                    <span class="text-[10px] text-slate-500 font-bold uppercase tracking-tighter">Избыточность</span>
                 </div>
             </div>
         </div>

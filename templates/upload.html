@@ -11,18 +11,49 @@
         
         <div class="w-full lg:w-[380px] order-2 lg:order-1 shrink-0">
             <div class="bg-[#0f0f23] p-8 rounded-3xl border border-slate-800 shadow-2xl sticky top-24">
+                {% if messages %}
+                    <div class="mb-6 space-y-3">
+                        {% for message in messages %}
+                            <div class="relative overflow-hidden rounded-2xl border {% if message.tags == 'error' %}border-rose-500/20 bg-rose-500/10 text-rose-400{% else %}border-emerald-500/20 bg-emerald-500/10 text-emerald-400{% endif %} p-4 transition-all animate-in fade-in slide-in-from-top-2">
+                                <div class="flex items-start gap-3">
+                                    {% if message.tags == 'error' %}
+                                        <svg class="w-5 h-5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                                        </svg>
+                                    {% else %}
+                                        <svg class="w-5 h-5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                                        </svg>
+                                    {% endif %}
+                                    <div class="text-[11px] font-medium leading-relaxed">
+                                        {{ message }}
+                                    </div>
+                                </div>
+                                <div class="absolute left-0 top-0 bottom-0 w-1 {% if message.tags == 'error' %}bg-rose-500{% else %}bg-emerald-500{% endif %}"></div>
+                            </div>
+                        {% endfor %}
+                    </div>
+                {% endif %}
                 <form method="post" enctype="multipart/form-data" class="space-y-6">
                 {% csrf_token %}
                 
-                <div class="group">
-                    <p class="text-[10px] font-bold text-slate-500 uppercase tracking-[0.2em] mb-6 block px-1 text-center">Выберите файл</p>
-                    
-                    <label class="relative flex flex-col items-center justify-center border-2 border-dashed border-slate-800 rounded-3xl p-10 hover:border-indigo-500/50 hover:bg-indigo-500/[0.03] transition-all cursor-pointer group/upload">
-                        
-                        <div class="hidden">
-                            {{ form.file }}
-                        </div>
+                <div class="space-y-2">
+                    <p class="text-[10px] font-bold text-slate-500 uppercase tracking-[0.2em] mb-2 block px-1">Производитель оборудования</p>
+                    <select name="vendor" id="vendor-select" class="w-full bg-slate-900 border border-slate-800 text-slate-300 text-xs rounded-xl px-4 py-3 focus:ring-2 focus:ring-indigo-500 outline-none transition-all cursor-pointer appearance-none">
+                        <option value="STANDARD">Стандартный</option>
+                        <option value="USERGATE">UserGate</option>
+                        <option value="CONTINENT">Континент 3.9</option>
+                        <option value="INFOTECS">ViPNet Administrator</option>
+                    </select>
+                </div>
 
+                <div class="group">
+                    <p class="text-[10px] font-bold text-slate-500 uppercase tracking-[0.2em] mb-6 block px-1 text-center">Выберите файл(-ы)</p>
+
+                    <label class="relative flex flex-col items-center justify-center border-2 border-dashed border-slate-800 rounded-3xl p-10 hover:border-indigo-500/50 hover:bg-indigo-500/[0.03] transition-all cursor-pointer group/upload">
+                        <div class="hidden">
+                            <input type="file" name="file" id="id_file" multiple>
+                        </div>
                         <div class="mb-4">
                             <div class="p-4 bg-slate-900 rounded-2xl group-hover/upload:scale-110 group-hover/upload:bg-indigo-500/10 transition-all duration-300">
                                 <svg class="w-10 h-10 text-indigo-400 group-hover/upload:text-indigo-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -30,15 +61,11 @@
                                 </svg>
                             </div>
                         </div>
-
                         <div class="space-y-1 text-center">
                             <span class="text-sm font-bold text-slate-200 block">Нажмите для выбора</span>
-                            <span class="text-[10px] text-slate-500 uppercase tracking-widest font-medium">Форматы поддерживаемых файлов: CSV, JSON до 10МБ</span>
+                            <span id="format-hint" class="text-[10px] text-slate-500 uppercase tracking-widest font-medium">CSV, JSON до 10МБ</span>
                         </div>
-
-                        <div class="absolute inset-0 bg-indigo-500/5 opacity-0 group-hover/upload:opacity-100 transition-opacity rounded-[22px]"></div>
                     </label>
-                    
                     <div id="file-name" class="mt-4 text-[10px] text-indigo-400 font-mono text-center truncate px-4"></div>
                 </div>
                 
@@ -51,102 +78,445 @@
                     </a>
                 </div>
             </form>
-
-            <script>
-                document.querySelector('input[type="file"]').addEventListener('change', function(e) {
-                    const fileName = e.target.files[0]?.name || "";
-                    document.getElementById('file-name').textContent = fileName ? `Выбран файл: ${fileName}` : "";
-                });
-            </script>
             </div>
         </div>
 
         <div class="flex-1 order-1 lg:order-2 space-y-8">
             
-            <section>
-                <h3 class="text-xs font-bold text-slate-500 uppercase tracking-[0.3em] mb-6 flex items-center gap-2">
-                    <span class="w-1.5 h-1.5 rounded-full bg-indigo-500"></span>
-                    Справочник полей
-                </h3>
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
-                    <div class="p-4 bg-slate-900/50 border border-slate-800 rounded-xl">
-                        <span class="text-indigo-400 font-mono font-bold block mb-1">name</span>
-                        <p class="text-slate-500 text-xs">Название правила. Если внутри есть запятые, используйте "кавычки".</p>
+            <div id="guide-STANDARD" class="vendor-guide space-y-8">
+                <section>
+                    <h3 class="text-xs font-bold text-slate-500 uppercase tracking-[0.3em] mb-6 flex items-center gap-2">
+                        <span class="w-1.5 h-1.5 rounded-full bg-indigo-500"></span> Справочник полей
+                    </h3>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+                        <div class="p-4 bg-slate-900/50 border border-slate-800 rounded-xl">
+                            <span class="text-indigo-400 font-mono font-bold block mb-1">name</span>
+                            <p class="text-slate-500 text-xs">Название правила. Если внутри есть запятые, используйте "кавычки".</p>
+                        </div>
+                        <div class="p-4 bg-slate-900/50 border border-slate-800 rounded-xl">
+                            <span class="text-indigo-400 font-mono font-bold block mb-1">source_ip / dest_ip</span>
+                            <p class="text-slate-500 text-xs">IP или подсети. Формат: <code class="text-slate-400">192.168.1.1</code> или <code class="text-slate-400">10.0.0.0/24</code>.</p>
+                        </div>
+                        <div class="p-4 bg-slate-900/50 border border-slate-800 rounded-xl">
+                            <span class="text-indigo-400 font-mono font-bold block mb-1">port</span>
+                            <p class="text-slate-500 text-xs">Число (1-65535) или диапазон (например, <code class="text-slate-400">80-443</code>). Оставьте пустым для ANY.</p>
+                        </div>
+                        <div class="p-4 bg-slate-900/50 border border-slate-800 rounded-xl">
+                            <span class="text-indigo-400 font-mono font-bold block mb-1">action</span>
+                            <p class="text-slate-500 text-xs">Только два значения: <code class="text-emerald-500">ALLOW</code> или <code class="text-rose-500">DENY</code>.</p>
+                        </div>
                     </div>
-                    <div class="p-4 bg-slate-900/50 border border-slate-800 rounded-xl">
-                        <span class="text-indigo-400 font-mono font-bold block mb-1">source_ip / dest_ip</span>
-                        <p class="text-slate-500 text-xs">IP или подсети. Формат: <code class="text-slate-400">192.168.1.1</code> или <code class="text-slate-400">10.0.0.0/24</code>.</p>
-                    </div>
-                    <div class="p-4 bg-slate-900/50 border border-slate-800 rounded-xl">
-                        <span class="text-indigo-400 font-mono font-bold block mb-1">port</span>
-                        <p class="text-slate-500 text-xs">Число (1-65535). Оставьте пустым для протоколов ICMP/ANY.</p>
-                    </div>
-                    <div class="p-4 bg-slate-900/50 border border-slate-800 rounded-xl">
-                        <span class="text-indigo-400 font-mono font-bold block mb-1">action</span>
-                        <p class="text-slate-500 text-xs">Только два значения: <code class="text-emerald-500">ALLOW</code> или <code class="text-rose-500">DENY</code>.</p>
-                    </div>
-                </div>
-            </section>
+                </section>
 
-            <div class="grid grid-cols-1 xl:grid-cols-2 gap-6">
-                <div class="bg-[#0f0f23] border border-slate-800 rounded-2xl overflow-hidden">
-                    <div class="px-5 py-3 border-b border-slate-800 bg-slate-800/30 flex justify-between items-center">
-                        <span class="text-[10px] font-bold text-amber-500 uppercase">Образец CSV</span>
-                        <span class="text-[10px] text-slate-600 font-mono">Excel / Notepad</span>
+                <div class="grid grid-cols-1 xl:grid-cols-2 gap-6">
+                    <div class="bg-[#0f0f23] border border-slate-800 rounded-2xl overflow-hidden">
+                        <div class="px-5 py-3 border-b border-slate-800 bg-slate-800/30 flex justify-between items-center">
+                            <span class="text-[10px] font-bold text-amber-500 uppercase">Образец CSV</span>
+                            <span class="text-[10px] text-slate-600 font-mono">Excel / Notepad</span>
+                        </div>
+                        <div class="p-5 font-mono text-[11px] text-slate-400 leading-relaxed overflow-x-auto">
+                            <div class="text-slate-600 mb-1 italic"># Заголовок обязателен</div>
+                            name,source_ip,dest_ip,port,protocol,action<br>
+                            Rule1,192.168.1.1,0.0.0.0/0,443,TCP,ALLOW<br>
+                            "DNS",8.8.8.8,8.8.4.4,53,UDP,ALLOW
+                        </div>
                     </div>
-                    <div class="p-5 font-mono text-[11px] text-slate-400 leading-relaxed overflow-x-auto">
-                        <div class="text-slate-600 mb-1 italic"># Заголовок обязателен</div>
-                        name,source_ip,dest_ip,port,protocol,action<br>
-                        Rule1,192.168.1.1,0.0.0.0/0,443,TCP,ALLOW<br>
-                        "DNS",8.8.8.8,8.8.4.4,53,UDP,ALLOW
-                    </div>
-                </div>
-
-                <div class="bg-[#0f0f23] border border-slate-800 rounded-2xl overflow-hidden">
-                    <div class="px-5 py-3 border-b border-slate-800 bg-slate-800/30 flex justify-between items-center">
-                        <span class="text-[10px] font-bold text-indigo-500 uppercase">Образец JSON</span>
-                        <span class="text-[10px] text-slate-600 font-mono">RFC 8259</span>
-                    </div>
-                    <div class="p-5 font-mono text-[11px] text-slate-400 overflow-x-auto">
+                    <div class="bg-[#0f0f23] border border-slate-800 rounded-2xl overflow-hidden">
+                        <div class="px-5 py-3 border-b border-slate-800 bg-slate-800/30 flex justify-between items-center">
+                            <span class="text-[10px] font-bold text-indigo-500 uppercase">Образец JSON</span>
+                        </div>
+                        <div class="p-5 font-mono text-[11px] text-slate-400 overflow-x-auto">
 <pre class="leading-relaxed text-indigo-300/80">
 [
   {
-    "name": "rule_1", # Имя правила
-    "source_ip": "10.0.0.5", # Исходный IP адрес
-    "dest_ip": "any",  # IP адрес назначения
-    "port": 22, # Порт
-    "protocol": "TCP", # Протокол
-    "action": "ALLOW" # Действие
+    "name": "rule_1",
+    "source_ip": "10.0.0.5",
+    "dest_ip": "any",
+    "port": 22,
+    "protocol": "TCP",
+    "action": "ALLOW"
   }
 ]
 </pre>
+                        </div>
                     </div>
+                </div>
+
+                <div class="bg-rose-500/[0.02] border border-rose-500/10 rounded-2xl p-6">
+                    <div class="flex items-center gap-3 mb-4 text-rose-400">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                        </svg>
+                        <h4 class="text-xs font-bold uppercase tracking-widest">Почему файл может не загрузиться?</h4>
+                    </div>
+                    <ul class="space-y-3 text-[11px] text-slate-500">
+                        <li class="flex items-start gap-2"><span class="text-rose-500 font-bold">•</span><span>Разделитель в CSV — <b>запятая</b>.</span></li>
+                        <li class="flex items-start gap-2"><span class="text-rose-500 font-bold">•</span><span>Протоколы пишутся капсом: <b>TCP, UDP, ICMP, ANY</b>.</span></li>
+                    </ul>
                 </div>
             </div>
 
-            <div class="bg-rose-500/[0.02] border border-rose-500/10 rounded-2xl p-6">
-                <div class="flex items-center gap-3 mb-4 text-rose-400">
-                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                    </svg>
-                    <h4 class="text-xs font-bold uppercase tracking-widest">Почему файл может не загрузиться?</h4>
-                </div>
-                <ul class="space-y-3 text-[11px] text-slate-500">
-                    <li class="flex items-start gap-2">
-                        <span class="text-rose-500 font-bold">•</span>
-                        <span>Разделитель в CSV — <b class="text-slate-300">запятая</b>. Если ваш Excel ставит точку с запятой (;), файл не прочитается.</span>
-                    </li>
-                    <li class="flex items-start gap-2">
-                        <span class="text-rose-500 font-bold">•</span>
-                        <span>В названиях (name) не должно быть лишних кавычек, если вы не экранируете всё поле целиком.</span>
-                    </li>
-                    <li class="flex items-start gap-2">
-                        <span class="text-rose-500 font-bold">•</span>
-                        <span>Протоколы пишутся капсом: <b class="text-slate-300">TCP, UDP, ICMP, ANY</b>.</span>
-                    </li>
-                </ul>
+            <div id="guide-USERGATE" class="vendor-guide hidden space-y-8">
+                <section class="space-y-8">
+                    <div class="flex items-center gap-4">
+                        <div class="h-12 w-12 rounded-2xl bg-orange-500/10 border border-orange-500/20 flex items-center justify-center text-orange-500 shadow-lg shadow-orange-500/5">
+                            <svg class="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                            </svg>
+                        </div>
+                        <div>
+                            <h3 class="text-xl font-bold text-white tracking-tight">Справочник UserGate</h3>
+                            <p class="text-slate-500 text-xs uppercase tracking-widest font-medium">Версии: 5.x, 6.x, 7.x (JSON Export)</p>
+                        </div>
+                    </div>
+
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                        <div class="bg-[#0f0f23] border border-slate-800 p-5 rounded-2xl relative overflow-hidden group">
+                            <span class="absolute -right-2 -top-2 text-4xl font-bold text-slate-800/50 group-hover:text-orange-500/10 transition-colors">1</span>
+                            <h5 class="text-white text-[11px] font-bold uppercase mb-3 tracking-wider">Навигация</h5>
+                            <p class="text-slate-500 text-xs leading-relaxed">Раздел <b>«Политики сети»</b> <br>→ вкладка <b>«Межсетевой экран»</b>.</p>
+                        </div>
+                        <div class="bg-[#0f0f23] border border-slate-800 p-5 rounded-2xl relative overflow-hidden group">
+                            <span class="absolute -right-2 -top-2 text-4xl font-bold text-slate-800/50 group-hover:text-orange-500/10 transition-colors">2</span>
+                            <h5 class="text-white text-[11px] font-bold uppercase mb-3 tracking-wider">Выбор данных</h5>
+                            <p class="text-slate-500 text-xs leading-relaxed">Выделите нужные правила и нажмите <b>«Экспорт»</b>. Выберите <b>«Экспорт с зависимыми объектами»</b>.</p>
+                        </div>
+                        <div class="bg-[#0f0f23] border border-slate-800 p-5 rounded-2xl relative overflow-hidden group">
+                            <span class="absolute -right-2 -top-2 text-4xl font-bold text-slate-800/50 group-hover:text-orange-500/10 transition-colors">3</span>
+                            <h5 class="text-white text-[11px] font-bold uppercase mb-3 tracking-wider">Формат</h5>
+                            <p class="text-slate-500 text-xs leading-relaxed">Тип файла: <b>JSON</b>. <br>Обязательно включите вложенные объекты.</p>
+                        </div>
+                    </div>
+
+                    <div class="space-y-4">
+                        <h4 class="text-xs font-bold text-slate-400 uppercase tracking-[0.2em] px-1">Логика обработки полей</h4>
+                        <div class="bg-[#0f0f23] border border-slate-800 rounded-2xl overflow-hidden">
+                            <table class="w-full text-left text-xs text-slate-400">
+                                <thead class="bg-slate-800/30 text-slate-300">
+                                    <tr><div class="w-full lg:w-[380px] order-2 lg:order-1 shrink-0"></div>
+                                        <th class="px-6 py-3 font-bold uppercase tracking-wider">Поле в UserGate</th>
+                                        <th class="px-6 py-3 font-bold uppercase tracking-wider">Действие системы</th>
+                                    </tr>
+                                </thead>
+                                <tbody class="divide-y divide-slate-800">
+                                    <tr>
+                                        <td class="px-6 py-4 font-mono text-orange-400">src_ips / dst_ips</td>
+                                        <td class="px-6 py-4">Раскрывает списки IP, диапазоны и CIDR. Группы объектов анализируются рекурсивно.</td>
+                                    </tr>
+                                    <tr>
+                                        <td class="px-6 py-4 font-mono text-orange-400">services</td>
+                                        <td class="px-6 py-4">Извлекает L4-протокол (TCP/UDP) и порты. Если указан "AppID", правило помечается для спец. проверки.</td>
+                                    </tr>
+                                    <tr>
+                                        <td class="px-6 py-4 font-mono text-orange-400">action</td>
+                                        <td class="px-6 py-4"><code class="text-emerald-500">"pass"</code> → <code class="text-emerald-500 font-bold">ALLOW</code>, <code class="text-rose-500">"drop/deny"</code> → <code class="text-rose-500 font-bold">DENY</code>.</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    <div class="bg-slate-950 rounded-2xl border border-slate-800 p-6 relative">
+                        <div class="absolute right-4 top-4 px-2 py-1 bg-orange-500/10 border border-orange-500/20 rounded text-[9px] text-orange-500 font-bold uppercase">JSON Structure</div>
+                        <div class="font-mono text-[11px] leading-loose">
+                            <span class="text-slate-500">{</span><br>
+                            &nbsp;&nbsp;<span class="text-orange-400">"rules"</span>: <span class="text-slate-500">[</span><br>
+                            &nbsp;&nbsp;&nbsp;&nbsp;<span class="text-slate-500">{</span><br>
+                            &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="text-indigo-400">"name"</span>: <span class="text-emerald-400">"Access to DB"</span>,<br>
+                            &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="text-indigo-400">"enabled"</span>: <span class="text-emerald-400">true</span>,<br>
+                            &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="text-indigo-400">"src_ips"</span>: <span class="text-slate-500">[</span><span class="text-emerald-400">"172.16.10.0/24"</span><span class="text-slate-500">]</span>,<br>
+                            &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="text-indigo-400">"dst_ips"</span>: <span class="text-slate-500">[</span><span class="text-emerald-400">"10.0.0.50"</span><span class="text-slate-500">]</span>,<br>
+                            &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="text-indigo-400">"services"</span>: <span class="text-slate-500">[</span><br>
+                            &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="text-slate-500">{</span> <span class="text-indigo-400">"proto"</span>: <span class="text-emerald-400">"tcp"</span>, <span class="text-indigo-400">"port"</span>: <span class="text-emerald-400">"5432"</span> <span class="text-slate-500">}</span><br>
+                            &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="text-slate-500">]</span><br>
+                            &nbsp;&nbsp;&nbsp;&nbsp;<span class="text-slate-500">}</span><br>
+                            &nbsp;&nbsp;<span class="text-slate-500">]</span><br>
+                            <span class="text-slate-500">}</span>
+                        </div>
+                    </div>
+
+                    <div class="bg-orange-500/[0.03] border border-orange-500/20 rounded-3xl p-8">
+                        <div class="flex items-center gap-3 text-orange-500 mb-6">
+                            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                            <h4 class="text-sm font-bold uppercase tracking-[0.2em]">Критически важно при импорте</h4>
+                        </div>
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-8 text-[11px] leading-relaxed text-slate-400">
+                            <div class="space-y-3">
+                                <p><b class="text-slate-200">Отключенные правила:</b> Если в JSON поле <code class="text-orange-400">"enabled": false</code>, то правило будет полностью проигнорировано при анализе конфликтов.</p>
+                                <p><b class="text-slate-200">L7-фильтрация:</b> Параметры Content Filtering и SSL Inspection не учитываются, так как анализ сфокусирован на уровне L3/L4.</p>
+                            </div>
+                            <div class="space-y-3">
+                                <p><b class="text-slate-200">Зоны (Zones):</b> Парсер сопоставляет Source/Destination зоны. Убедитесь, что названия зон в файле соответствуют вашей сетевой топологии.</p>
+                                <p><b class="text-slate-200">Предел объектов:</b> При наличии более 5000 объектов адресов в одном файле время первичной обработки может увеличиться до 30 секунд.</p>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+            </div>
+
+            <div id="guide-CONTINENT" class="vendor-guide hidden space-y-8">
+                <section class="space-y-8">
+                    <div class="flex items-center gap-4">
+                        <div class="h-12 w-12 rounded-2xl bg-blue-500/10 border border-blue-500/20 flex items-center justify-center text-blue-500 shadow-lg shadow-blue-500/5">
+                            <svg class="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                            </svg>
+                        </div>
+                        <div>
+                            <h3 class="text-xl font-bold text-white tracking-tight">Справочник АПКШ «Континент» версии 3.9</h3>
+                            <p class="text-slate-500 text-xs uppercase tracking-widest font-medium">Работа с XML конфигурацией ЦУС (Центр Управления Сетью)</p>
+                        </div>
+                    </div>
+
+                    <div class="space-y-4">
+                        <h4 class="text-xs font-bold text-slate-400 uppercase tracking-[0.2em] px-1">Инструкция по выгрузке из Менеджера Конфигурации</h4>
+                        <div class="grid grid-cols-1 gap-3">
+                            <div class="flex items-start gap-4 p-4 bg-[#0f0f23] border border-slate-800 rounded-2xl">
+                                <div class="w-8 h-8 rounded-full bg-blue-500/20 text-blue-400 flex-shrink-0 flex items-center justify-center text-xs font-bold">1</div>
+                                <p class="text-xs text-slate-400 leading-relaxed">Запустите <b>«Программу управления ЦУС»</b> и авторизуйтесь под учетной записью с правами администратора конфигурации.</p>
+                            </div>
+                            <div class="flex items-start gap-4 p-4 bg-[#0f0f23] border border-slate-800 rounded-2xl">
+                                <div class="w-8 h-8 rounded-full bg-blue-500/20 text-blue-400 flex-shrink-0 flex items-center justify-center text-xs font-bold">2</div>
+                                <p class="text-xs text-slate-400 leading-relaxed">Выберите необходимый КШ (Криптошлюз) в дереве устройств. Перейдите в меню <b>«Конфигурация» → «Экспорт»</b>.</p>
+                            </div>
+                            <div class="flex items-start gap-4 p-4 bg-[#0f0f23] border border-slate-800 rounded-2xl">
+                                <div class="w-8 h-8 rounded-full bg-blue-500/20 text-blue-400 flex-shrink-0 flex items-center justify-center text-xs font-bold">3</div>
+                                <div class="space-y-2">
+                                    <p class="text-xs text-slate-400 leading-relaxed">В появившемся окне выберите <b>«Правила фильтрации»</b>. Сохраните полученный файл с расширением <code class="text-blue-400">.xml</code>.</p>
+                                    <div class="inline-flex items-center gap-2 px-2 py-1 rounded bg-amber-500/10 border border-amber-500/20 text-[10px] text-amber-500">
+                                        <svg class="w-3 h-3" fill="currentColor" viewBox="0 0 20 20"><path d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-11a1 1 0 10-2 0v2H7a1 1 0 100 2h2v2a1 1 0 102 0v-2h2a1 1 0 100-2h-2V7z"/></svg>
+                                        Важно: Не путайте с экспортом ключей или системного журнала.
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="bg-[#0f0f23] border border-slate-800 rounded-2xl overflow-hidden">
+                        <div class="px-6 py-4 border-b border-slate-800 bg-slate-800/20">
+                            <h5 class="text-white text-[11px] font-bold uppercase tracking-wider">Маппинг XML-аттрибутов</h5>
+                        </div>
+                        <div class="p-6 space-y-6">
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                <div class="space-y-4">
+                                    <div class="p-4 bg-slate-950 rounded-xl border-l-2 border-blue-500">
+                                        <h6 class="text-blue-400 text-[10px] font-bold uppercase mb-1">Идентификация правила</h6>
+                                        <p class="text-slate-500 text-[11px]">Система считывает аттрибут <code class="text-slate-300">Description</code>. Если он пуст, правилу присваивается индексный номер <code class="text-slate-300">Rule_#ID</code>.</p>
+                                    </div>
+                                    <div class="p-4 bg-slate-950 rounded-xl border-l-2 border-blue-500">
+                                        <h6 class="text-blue-400 text-[10px] font-bold uppercase mb-1">Действия (Action)</h6>
+                                        <p class="text-slate-500 text-[11px]"><code class="text-slate-300">Permit</code> интерпретируется как <b class="text-emerald-500">ALLOW</b>, остальные (Deny, Reject) как <b class="text-rose-500">DENY</b>.</p>
+                                    </div>
+                                </div>
+                                <div class="bg-slate-950 rounded-xl p-4 font-mono text-[10px] text-blue-300/80 leading-relaxed">
+                                    <div class="text-slate-600 mb-2">&lt;!-- Структура объекта --&gt;</div>
+                                    &lt;<span class="text-blue-400">FilterRule</span> Description="WAN_Access" ...&gt;<br>
+                                    &nbsp;&nbsp;&lt;Source&gt;<br>
+                                    &nbsp;&nbsp;&nbsp;&nbsp;&lt;<span class="text-blue-400">IPRange</span> From="10.0.0.1" To="10.0.0.255"/&gt;<br>
+                                    &nbsp;&nbsp;&lt;/Source&gt;<br>
+                                    &nbsp;&nbsp;&lt;Service <span class="text-blue-400">Protocol</span>="6" <span class="text-blue-400">Port</span>="80"/&gt;<br>
+                                    &lt;/FilterRule&gt;
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="bg-blue-500/[0.03] border border-blue-500/20 rounded-3xl p-8">
+                        <div class="flex items-center gap-3 text-blue-400 mb-6">
+                            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                            <h4 class="text-sm font-bold uppercase tracking-[0.2em]">Особенности версии 3.9</h4>
+                        </div>
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+                            <div class="space-y-4">
+                                <div class="flex gap-4">
+                                    <div class="mt-1 w-1.5 h-1.5 rounded-full bg-blue-500 flex-shrink-0"></div>
+                                    <p class="text-[11px] text-slate-400"><b class="text-slate-200 block mb-1">Диапазоны IP (IPRange)</b> Система анализирует весь интервал адресов (From/To). Обратные диапазоны помечаются как ошибка.</p>
+                                </div>
+                                <div class="flex gap-4">
+                                    <div class="mt-1 w-1.5 h-1.5 rounded-full bg-blue-500 flex-shrink-0"></div>
+                                    <p class="text-[11px] text-slate-400"><b class="text-slate-200 block mb-1">Числовые протоколы</b> В Континенте протоколы часто указаны ID (6=TCP, 17=UDP, 1=ICMP). Наша система выполняет обратный маппинг в человекочитаемый вид.</p>
+                                </div>
+                            </div>
+                            <div class="space-y-4">
+                                <div class="flex gap-4">
+                                    <div class="mt-1 w-1.5 h-1.5 rounded-full bg-blue-500 flex-shrink-0"></div>
+                                    <p class="text-[11px] text-slate-400"><b class="text-slate-200 block mb-1">Стелс-правила</b> Правила, созданные системой автоматически (скрытые), не экспортируются в XML и не участвуют в анализе избыточности.</p>
+                                </div>
+                                <div class="flex gap-4">
+                                    <div class="mt-1 w-1.5 h-1.5 rounded-full bg-blue-500 flex-shrink-0"></div>
+                                    <p class="text-[11px] text-slate-400"><b class="text-slate-200 block mb-1">Кодировка</b> XML должен быть сохранен в кодировке <code class="text-slate-200">UTF-8</code> или <code class="text-slate-200">Windows-1251</code>. При проблемах с кириллицей проверьте заголовок файла.</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="p-6 bg-slate-900/40 border border-slate-800 rounded-2xl flex items-center gap-6">
+                        <div class="p-3 bg-indigo-500/10 rounded-xl">
+                            <svg class="w-6 h-6 text-indigo-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                        </div>
+                        <p class="text-xs text-slate-500 leading-relaxed">
+                            <span class="text-slate-300 font-bold block mb-1">Важно для анализа конфликтов:</span>
+                            Континент 3.9 применяет правила <b>сверху вниз</b> до первого совпадения. Наш алгоритм учитывает эту последовательность при поиске «затененных» (Shadowed) правил.
+                        </p>
+                    </div>
+                </section>
+            </div>
+
+            <div id="guide-INFOTECS" class="vendor-guide hidden space-y-8">
+                <section class="space-y-8">
+                    <div class="flex items-center gap-4">
+                        <div class="h-12 w-12 rounded-2xl bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center text-emerald-500 shadow-lg shadow-emerald-500/5">
+                            <svg class="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                            </svg>
+                        </div>
+                        <div>
+                            <h3 class="text-xl font-bold text-white tracking-tight">ViPNet Administrator (ЦУС)</h3>
+                            <p class="text-slate-500 text-xs uppercase tracking-widest font-medium">Работа с XML-экспортом правил фильтрации</p>
+                        </div>
+                    </div>
+                    <div class="space-y-4">
+                        <h4 class="text-xs font-bold text-slate-400 uppercase tracking-[0.2em] px-1">Где взять файл экспорта?</h4>
+                        <div class="bg-[#0f0f23] border border-slate-800 rounded-2xl overflow-hidden">
+                            <div class="p-6 grid grid-cols-1 md:grid-cols-2 gap-8">
+                                <div class="space-y-4">
+                                    <div class="flex items-start gap-4 p-4 bg-slate-950 rounded-xl border-l-2 border-emerald-500">
+                                        <div class="text-emerald-500 font-bold font-mono text-sm whitespace-nowrap pt-0.5">ШАГ 1</div>
+                                        <p class="text-xs text-slate-400 leading-relaxed">
+                                            В ЦУС перейдите в раздел <b>«Прикладные задачи»</b> → <b>«Межсетевой экран»</b>.
+                                        </p>
+                                    </div>
+
+                                    <div class="flex items-start gap-4 p-4 bg-slate-950 rounded-xl border-l-2 border-emerald-500">
+                                        <div class="text-emerald-500 font-bold font-mono text-sm whitespace-nowrap pt-0.5">ШАГ 2</div>
+                                        <p class="text-xs text-slate-400 leading-relaxed">
+                                            Выберите нужный сетевой узел (Координатор) или группу. Откройте вкладку <b>«Правила фильтрации открытого трафика»</b>.
+                                        </p>
+                                    </div>
+
+                                    <div class="flex items-start gap-4 p-4 bg-slate-950 rounded-xl border-l-2 border-emerald-500">
+                                        <div class="text-emerald-500 font-bold font-mono text-sm whitespace-nowrap pt-0.5">ШАГ 3</div>
+                                        <p class="text-xs text-slate-400 leading-relaxed">
+                                            Нажмите ПКМ на списке правил и выберите <b>«Экспорт...»</b>. Укажите тип файла <b>XML</b> и кодировку <b>UTF-8</b>.
+                                        </p>
+                                    </div>
+                                </div>
+                                <div class="bg-emerald-500/5 rounded-2xl p-5 border border-emerald-500/10">
+                                    <h6 class="text-emerald-400 text-[10px] font-bold uppercase mb-3 tracking-wider">Поддерживаемые объекты</h6>
+                                    <ul class="text-[10px] text-slate-500 space-y-2">
+                                        <li class="flex items-center gap-2"><svg class="w-3 h-3 text-emerald-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M5 13l4 4L19 7" stroke-width="3"/></svg> Транзитные правила (Forward)</li>
+                                        <li class="flex items-center gap-2"><svg class="w-3 h-3 text-emerald-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M5 13l4 4L19 7" stroke-width="3"/></svg> Локальные правила (Input)</li>
+                                        <li class="flex items-center gap-2"><svg class="w-3 h-3 text-emerald-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M5 13l4 4L19 7" stroke-width="3"/></svg> Групповые объекты адресов</li>
+                                    </ul>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="space-y-4">
+                        <h4 class="text-xs font-bold text-slate-400 uppercase tracking-[0.2em] px-1">Технические детали парсинга</h4>
+                        <div class="bg-slate-950 rounded-2xl border border-slate-800 p-6">
+                            <div class="font-mono text-[11px] leading-relaxed mb-6">
+                                <span class="text-slate-600">&lt;!-- Система ищет следующие теги --&gt;</span><br>
+                                &lt;<span class="text-emerald-400">FirewallRule</span> Name="<span class="text-amber-400">ERP_Access</span>" Action="<span class="text-emerald-500">Allow</span>"&gt;<br>
+                                &nbsp;&nbsp;&lt;<span class="text-emerald-400">Source</span>&gt;<span class="text-slate-300">192.168.10.5</span>&lt;/<span class="text-emerald-400">Source</span>&gt;<br>
+                                &nbsp;&nbsp;&lt;<span class="text-emerald-400">Destination</span>&gt;<span class="text-slate-300">10.0.0.1/32</span>&lt;/<span class="text-emerald-400">Destination</span>&gt;<br>
+                                &nbsp;&nbsp;&lt;<span class="text-emerald-400">Protocol</span>&gt;<span class="text-slate-300">TCP</span>&lt;/<span class="text-emerald-400">Protocol</span>&gt;<br>
+                                &nbsp;&nbsp;&lt;<span class="text-emerald-400">Port</span>&gt;<span class="text-slate-300">1433</span>&lt;/<span class="text-emerald-400">Port</span>&gt;<br>
+                                &lt;/FirewallRule&gt;
+                            </div>
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <div class="p-4 bg-[#0f0f23] rounded-xl border border-slate-800">
+                                    <span class="text-emerald-400 font-bold text-[10px] uppercase block mb-1">Маскировка</span>
+                                    <p class="text-slate-500 text-[11px]">Правила с действием <code class="text-slate-300">"Маскировать"</code> (NAT) учитываются как <b class="text-emerald-500 font-medium">ALLOW</b>, но помечаются флагом NAT для корректного поиска дубликатов.</p>
+                                </div>
+                                <div class="p-4 bg-[#0f0f23] rounded-xl border border-slate-800">
+                                    <span class="text-emerald-400 font-bold text-[10px] uppercase block mb-1">Протоколы</span>
+                                    <p class="text-slate-500 text-[11px]">Если в поле Protocol указано <code class="text-slate-300">"Любой"</code> или <code class="text-slate-300">"ANY"</code>, система будет сравнивать правило со всеми портами других правил.</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="bg-emerald-500/[0.03] border border-emerald-500/20 rounded-3xl p-8">
+                        <div class="flex items-center gap-3 text-emerald-500 mb-6">
+                            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                            <h4 class="text-sm font-bold uppercase tracking-[0.2em]">Важные нюансы работы ЦУС</h4>
+                        </div>
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-10">
+                            <div class="space-y-4">
+                                <div>
+                                    <h6 class="text-slate-200 text-xs font-bold mb-2 flex items-center gap-2">
+                                        <span class="w-1 h-1 bg-emerald-500 rounded-full"></span>
+                                        Открытый vs Туннелируемый трафик
+                                    </h6>
+                                    <p class="text-[11px] text-slate-500 leading-relaxed">
+                                        Парсер предназначен для анализа <b>открытого</b> (нешифрованного) трафика. Правила для трафика внутри VPN-туннелей ViPNet (между узлами сети) выгружаются в другие секции XML и в данном модуле не анализируются.
+                                    </p>
+                                </div>
+                                <div>
+                                    <h6 class="text-slate-200 text-xs font-bold mb-2 flex items-center gap-2">
+                                        <span class="w-1 h-1 bg-emerald-500 rounded-full"></span>
+                                        Пользовательские объекты
+                                    </h6>
+                                    <p class="text-[11px] text-slate-500 leading-relaxed">
+                                        Если в качестве источника или назначения используются «Сетевые объекты», созданные вручную, убедитесь, что при экспорте XML опция <b>«Раскрывать сетевые объекты»</b> включена, иначе вместо IP-адресов система увидит только их имена.
+                                    </p>
+                                </div>
+                            </div>
+                            <div class="space-y-4">
+                                <div class="p-4 bg-emerald-500/5 rounded-2xl border border-emerald-500/10">
+                                    <h6 class="text-emerald-400 text-[10px] font-bold uppercase mb-2">Приоритет (Order)</h6>
+                                    <p class="text-[11px] text-slate-500 leading-relaxed">
+                                        В ViPNet правила могут иметь разный приоритет в зависимости от того, являются они <b>Сетевыми</b> или <b>Индивидуальными</b>. При анализе мы автоматически выстраиваем их в правильном порядке исполнения (Сначала Сетевые, затем Индивидуальные).
+                                    </p>
+                                </div>
+                                <div class="p-4 bg-slate-900/40 rounded-2xl border border-slate-800">
+                                    <h6 class="text-slate-300 text-[10px] font-bold uppercase mb-2">Кодировка XML</h6>
+                                    <p class="text-[11px] text-slate-500 leading-relaxed">
+                                        При экспорте из ЦУС старых версий может использоваться кодировка <code class="text-slate-300">windows-1251</code>. Наш загрузчик поддерживает её, но для стабильности рекомендуем пересохранять файл в <code class="text-slate-300">UTF-8</code>.
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </section>
             </div>
         </div>
     </div>
 </div>
+
+<script>
+    const vendorSelect = document.getElementById('vendor-select');
+    const formatHint = document.getElementById('format-hint');
+    const fileInput = document.querySelector('input[type="file"]');
+    const fileNameDisplay = document.getElementById('file-name');
+    const guides = document.querySelectorAll('.vendor-guide');
+
+    vendorSelect.addEventListener('change', function() {
+        const selectedVendor = this.value;
+        
+        guides.forEach(guide => guide.classList.add('hidden'));
+        const activeGuide = document.getElementById(`guide-${selectedVendor}`);
+        if(activeGuide) activeGuide.classList.remove('hidden');
+
+        if (selectedVendor === 'STANDARD') {
+            formatHint.textContent = "CSV, JSON до 10МБ";
+        } else if (selectedVendor === 'USERGATE') {
+            formatHint.textContent = "Файл .json (экспорт)";
+        } else {
+            formatHint.textContent = "Файл .xml (конфигурация)";
+        }
+    });
+
+    fileInput.addEventListener('change', function(e) {
+        const files = e.target.files;
+        if (files.length > 1) {
+            fileNameDisplay.textContent = `Выбрано файлов: ${files.length}`;
+        } else if (files.length === 1) {
+            fileNameDisplay.textContent = `Выбран файл: ${files[0].name}`;
+        } else {
+            fileNameDisplay.textContent = "";
+        }
+    });
+</script>
 {% endblock %}

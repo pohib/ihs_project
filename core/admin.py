@@ -20,7 +20,7 @@ class FirewallRuleAdmin(admin.ModelAdmin):
         'port', 
         'protocol', 
         'is_redundant', 
-        'is_shadowed'
+        'is_shadowed',
     )
     
     list_filter = ('file_source', 'action', 'protocol', 'is_redundant', 'is_shadowed')
@@ -38,7 +38,7 @@ class FirewallRuleAdmin(admin.ModelAdmin):
             'fields': ('source_ip', 'dest_ip')
         }),
         ('Результаты анализа', {
-            'fields': ('is_redundant', 'is_shadowed', 'recommendation'),
+            'fields': ('is_redundant', 'is_shadowed', 'error', 'recommendation'),
             'classes': ('collapse',),
         }),
     )

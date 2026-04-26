@@ -1,16 +1,32 @@
 from django.db import models
 
 class FileImport(models.Model):
+    VENDOR_CHOICES = [
+        ('STANDARD', 'Стандартный (CSV/JSON)'),
+        ('USERGATE', 'UserGate (Export JSON)'),
+        ('CONTINENT', 'МЭ Континент (XML)'),
+        ('INFOTECS', 'ИнфоТеКС (VIPNet)'),
+    ]
+
     filename = models.CharField(
         max_length=255, 
         verbose_name="Имя файла"
     )
+
     import_date = models.DateTimeField(
         auto_now_add=True, 
         verbose_name="Дата загрузки"
     )
 
+    vendor = models.CharField(
+        max_length=100, 
+        choices=VENDOR_CHOICES, 
+        default='STANDARD',
+        verbose_name="Производитель"
+    )
+
     session_id = models.CharField(max_length=100, null=True, blank=True, db_index=True)
+
     class Meta:
         verbose_name = "Загруженный файл"
         verbose_name_plural = "Загруженные файлы"
@@ -62,6 +78,8 @@ class FirewallRule(models.Model):
         verbose_name="Порт",
         help_text="Оставьте пустым для всех портов"
     )
+    port_start = models.IntegerField(default=0)
+    port_end = models.IntegerField(default=65535)
     protocol = models.CharField(
         max_length=10, 
         choices=PROTOCOL_CHOICES, 
@@ -81,7 +99,7 @@ class FirewallRule(models.Model):
     )
     is_shadowed = models.BooleanField(
         default=False, 
-        verbose_name="Ошибка",
+        verbose_name="Затенение",
         help_text="Указывает на логический конфликт с правилом выше"
     )
     recommendation = models.TextField(
@@ -89,9 +107,8 @@ class FirewallRule(models.Model):
         null=True, 
         verbose_name="Рекомендация по оптимизации"
     )
-    
-    is_correlated = models.BooleanField(default=False, verbose_name="Корреляция")
-    
+
+    is_error = models.BooleanField(default=False, verbose_name="Ошибка")
     created_at = models.DateTimeField(auto_now_add=True, verbose_name="Дата добавления")
 
     class Meta:

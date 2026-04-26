@@ -1,6 +1,0 @@
-name,source_ip,dest_ip,port,protocol,action
-Allow_All_Web,192.168.1.0/24,0.0.0.0/0,80,TCP,ALLOW
-Redundant_Host_Web,192.168.1.50/32,0.0.0.0/0,80,TCP,ALLOW
-Shadowed_Admin_Block,192.168.1.10/32,10.0.0.1/32,80,TCP,DENY
-DNS_Any,0.0.0.0/0,8.8.8.8/32,53,UDP,ALLOW
-Global_Deny,0.0.0.0/0,0.0.0.0/0,,ANY,DENY
