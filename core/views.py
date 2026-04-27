@@ -432,6 +432,16 @@ def handle_usergate(file, file_import):
         raise ValueError(f"Критическая ошибка парсинга UserGate: {e}")
 
 def handle_infotecs(file, file_import):
+    def clean_vipnet_ip(raw):
+        if not raw: return '0.0.0.0/0'
+        raw = str(raw).lower().strip()
+        raw = raw.replace('[', '').replace(']', '')
+        if raw in ['any', 'все', '*', '0.0.0.0', '']: 
+            return '0.0.0.0/0'
+        if '/' not in raw: 
+            return f"{raw}/32"
+        return raw
+    
     file.seek(0)
     try:
         content = file.read()
@@ -440,36 +450,41 @@ def handle_infotecs(file, file_import):
         except UnicodeDecodeError:
             content_str = content.decode('windows-1251', errors='ignore')
             
-        tree = ET.ElementTree(ET.fromstring(content_str))
-        root = tree.getroot()
+        root = ET.fromstring(content_str)
 
-        rules_found = root.findall('.//Rule') or root.findall('.//Filter') or root.findall('.//ForwardRule')
+        rules_found = root.findall('.//FirewallRule') or root.findall('.//Rule')
 
         for rule in rules_found:
-            name = rule.get('name') or rule.findtext('Description') or rule.get('id') or "ViPNet Rule"
+            name = rule.get('Name') or rule.get('name') or rule.findtext('Description') or "ViPNet Rule"
 
-            def clean_vipnet_ip(raw):
-                if not raw: return '0.0.0.0/0'
-                raw = raw.lower().strip()
-                if raw in ['any', 'все', '*', '0.0.0.0', '']: return '0.0.0.0/0'
-                raw = raw.replace('[', '').replace(']', '')
-                if '/' not in raw: return f"{raw}/32"
-                return raw
+            def get_ip(node_name):
+                host_node = rule.find(f'./{node_name}/Host')
+                if host_node is not None and host_node.get('IP'):
+                    return host_node.get('IP')
 
-            src_raw = rule.get('source') or rule.findtext('Source') or 'any'
-            dst_raw = rule.get('destination') or rule.findtext('Destination') or 'any'
-            
-            src = clean_vipnet_ip(src_raw)
-            dst = clean_vipnet_ip(dst_raw)
+                direct_node = rule.find(f'./{node_name}')
+                if direct_node is not None and direct_node.text:
+                    return direct_node.text
 
-            action_raw = (rule.get('action') or rule.findtext('Action') or 'block').lower()
+                return rule.get(node_name.lower()) or 'any'
+
+            src = clean_vipnet_ip(get_ip('Source'))
+            dst = clean_vipnet_ip(get_ip('Destination'))
+
+            action_raw = (rule.get('Action') or rule.get('action') or rule.findtext('Action') or 'block').lower()
             action = 'ALLOW' if action_raw in ['pass', 'permit', 'accept', 'allow'] else 'DENY'
 
-            proto_val = (rule.get('protocol') or rule.findtext('Protocol') or 'ANY').upper()
-            proto_map = {'6': 'TCP', '17': 'UDP', '1': 'ICMP', 'TCP': 'TCP', 'UDP': 'UDP', 'ICMP': 'ICMP'}
-            protocol = proto_map.get(proto_val, proto_val if proto_val else 'ANY')
+            svc = rule.find('./Service')
+            if svc is not None:
+                proto_val = svc.get('Protocol') or svc.get('protocol') or 'ANY'
+                port_raw = svc.get('Port') or svc.get('port') or 'any'
+            else:
+                proto_val = rule.findtext('Protocol') or rule.get('protocol') or 'ANY'
+                port_raw = rule.findtext('Port') or rule.get('port') or 'any'
 
-            port_raw = rule.get('port') or rule.get('dstPort') or rule.findtext('Port') or 'any'
+            proto_map = {'6': 'TCP', '17': 'UDP', '1': 'ICMP', 'TCP': 'TCP', 'UDP': 'UDP', 'ICMP': 'ICMP'}
+            protocol = proto_map.get(proto_val.upper(), proto_val.upper())
+
             p_min, p_max = parse_port_range(port_raw)
 
             FirewallRule.objects.create(
@@ -482,9 +497,8 @@ def handle_infotecs(file, file_import):
                 protocol=protocol,
                 action=action
             )
-            
     except Exception as e:
-        raise Exception(f"Ошибка обработки XML: {str(e)}")
+        raise Exception(f"Ошибка парсинга: {str(e)}")
 
 def parse_port_range(port_raw):
     p = str(port_raw).lower().strip()
