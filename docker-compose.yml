@@ -3,6 +3,7 @@ services:
     name: django-analyzer
     runtime: docker
     plan: free
+    preDeployCommand: python manage.py migrate --noinput
     envVars:
       - key: DATABASE_URL
         fromDatabase:
